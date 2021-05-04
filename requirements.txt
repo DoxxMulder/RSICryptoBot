@@ -1,0 +1,4 @@
+coinbase
+TA-lib
+numpy
+websocket_client
