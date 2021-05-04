@@ -2,7 +2,7 @@
 
 from coinbase.wallet.client import Client
 from time import sleep
-from data import api_key, api_secret
+from data import api_key, api_secret #This is just a file with the API keys - intentionally left out of the repo for security reasons
 from analytics import percentage_change
 
 #Setting up Coinbase client
@@ -15,19 +15,23 @@ user_amount_spent = float(input("Enter how much you want to spend (USD): "))
 
 currency_code = 'USD'
 
-start_price = client.get_spot_price(currency=currency_code)
+start_price = client.get_buy_price(currency=currency_code)
+
+#How often to update prices (in seconds)
+cycle_time = 15
 
 while(True):
 
     buy_price = client.get_buy_price(currency=currency_code)
     sell_price = client.get_sell_price(currency=currency_code)
+    #spot_price = client.get_spot_price(currency=currency_code)
     percentage_gainloss = percentage_change(start_price.amount, buy_price.amount)
 
     #Print current BTC price + percent change
-    print('Bitcoin is $' + str(buy_price.amount) + '\nPercent change in last 60 seconds: ' + format(percentage_gainloss, ".3f") + '%')
+    print('Bitcoin is ${:.2f} \nPercent change in last {} seconds: {:.6f}%'.format(float(buy_price.amount), cycle_time, percentage_gainloss))
 
     #Sell, if within sell threshold
-    if(float(buy_price.amount) > user_limit_order):
+    if(float(sell_price.amount) > user_limit_order):
         btc_amount_sold = 0
 #        sell = ''
         sTxt = "Sold {:.6f} BTC at ${:.2f}/BTC for a total of ${:.2f}" 
@@ -47,7 +51,7 @@ while(True):
         print("Holding...")
     
     #Sleep
-    for i in range(60, 0, -1):
+    for i in range(cycle_time, 0, -1):
         print("Waiting... ({})".format(i), end = "\r")
         sleep(1)
 
