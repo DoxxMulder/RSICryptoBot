@@ -2,8 +2,8 @@
 
 from coinbase.wallet.client import Client
 from time import sleep
-from data import percentage_change, api_key, api_secret
-
+from data import api_key, api_secret
+from analytics import percentage_change
 
 #Setting up Coinbase client
 client = Client(api_key, api_secret)
