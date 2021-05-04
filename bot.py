@@ -1,4 +1,5 @@
-#import coinbase
+#Main program
+
 from coinbase.wallet.client import Client
 from time import sleep
 from data import percentage_change, api_key, api_secret
