@@ -36,26 +36,23 @@ hold_counter = 0
 def buyBtc(quantity, price):
     try:
         bTxt ="Bought {:.6f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}"
-        print(bTxt.format(float(quantity * float(price)), float(price), quantity * float(price)))
+        print(bTxt.format(float(quantity), float(price), float(quantity * float(price))))
         bought_at = float(price)
-        running_total -= quantity * float(price)
+        running_total -= float(quantity) * float(price)
         print("Running total of gain/loss: ${:,.2f}".format(running_total))
-
+        return True
     except Exception as e:
         return False
-    
-    return True
 
 def sellBtc(quantity, price):
     try:
         sTxt = "Sold {:.6f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}" 
         print(sTxt.format(float(quantity), float(price), float(quantity * float(price))))
-        running_total += quantity * float(price)
+        running_total += float(quantity) * float(price)
         print("Running total of gain/loss: ${:,.2f}".format(running_total))
+        return True
     except Exception as e:
         return False
-    
-    return True
 
 while(True):
 
