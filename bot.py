@@ -1,10 +1,11 @@
 #Main program
 
-import numpy, talib
+import numpy, talib, math
 from coinbase.wallet.client import Client
 from time import sleep
 from data import api_key, api_secret #This is just a file with the API keys - intentionally left out of the repo for security reasons
 from analytics import percentage_change
+from decimal import *
 
 #Setting up Coinbase client
 client = Client(api_key, api_secret)
@@ -25,20 +26,20 @@ CYCLE_TIME = 20
 RSI_PERIOD = 14
 RSI_OVERBOUGHT = 70
 RSI_OVERSOLD = 30
-TRADE_QUANTITY = 0.0005
+TRADE_QUANTITY = Decimal(0.0005)
 
 changes_list = []
 in_position = False
-bought_at = float(0)        #Remember buy-in price
-running_total = float(0)    #Total profit/loss
+bought_at = Decimal(0)        #Remember buy-in price
+running_total = Decimal(0)    #Total profit/loss
 hold_counter = 0
 
 def buyBtc(quantity, price):
     try:
-        bought_at = float(price)
+        bought_at = Decimal(quantity) * Decimal(price)
         #running_total -= float(quantity) * float(price)
         bTxt ="Bought {:.6f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}"
-        print(bTxt.format(float(quantity), float(price), float(quantity * float(price))))
+        print(bTxt.format(Decimal(quantity), Decimal(price), Decimal(quantity) * Decimal(price)))
     except Exception as e:
         print("Error within buyBtc")
         print(e)
@@ -49,7 +50,7 @@ def sellBtc(quantity, price):
     try:
         #running_total += float(quantity) * float(price)
         sTxt = "Sold {:.6f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}"
-        print(sTxt.format(float(quantity), float(price), float(quantity * float(price))))
+        print(sTxt.format(Decimal(quantity), Decimal(price), Decimal(quantity) * Decimal(price)))
     except Exception as e:
         print("Error within sellBtc")
         print(e)
@@ -69,14 +70,16 @@ while(True):
     if in_position:
         test_sell = sellBtc(TRADE_QUANTITY, sell_price.amount)
         if test_sell:
-            running_total += float(TRADE_QUANTITY) * float(buy_price.amount)
-            print("Running total of gain/loss: ${:,.2f}".format(round(running_total, 2)))
+            running_total += Decimal(TRADE_QUANTITY) * Decimal(buy_price.amount)
+            #print(running_total)
+            print("Running total of gain/loss: ${:,.2f}".format(running_total.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)))
             in_position = False
     else:
         test_buy = buyBtc(TRADE_QUANTITY, buy_price.amount)
         if test_buy:
-            running_total -= float(TRADE_QUANTITY) * float(buy_price.amount)
-            print("Running total of gain/loss: ${:,.2f}".format(round(running_total, 2)))
+            running_total -= Decimal(TRADE_QUANTITY) * Decimal(buy_price.amount)
+            #print(running_total)
+            print("Running total of gain/loss: ${:,.2f}".format(running_total.quantize(Decimal('.01'), rounding=ROUND_HALF_UP)))
             in_position = True
     '''
 
@@ -88,23 +91,26 @@ while(True):
         print(rsi)
         '''
         last_rsi = rsi[-1]
-        print("Current profit/loss:\t{:,.2f}\nCurrent rsi:\t{:.2f}".format(float(running_total),float(last_rsi)))
+        print("Current profit/loss:\t${:,.2f}\nCurrent rsi:\t{:.2f}".format(running_total,float(last_rsi)))
 
         if last_rsi > RSI_OVERBOUGHT:
-            if in_position and (float(sell_price.amount) > bought_at):
+            if in_position and (((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)) > Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)):
                 print("Sell!")
+                print((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP))
+                print("is greater than price bought at:")
+                print(Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP))
                 sell_succeeded = sellBtc(TRADE_QUANTITY, sell_price.amount)
                 if sell_succeeded:
-                    running_total += float(TRADE_QUANTITY) * float(sell_price.amount)
+                    running_total += Decimal(TRADE_QUANTITY) * Decimal(sell_price.amount)
                     print("Running total of gain/loss: ${:,.2f}".format(round(running_total, 2)))
                     in_position = False
-            elif in_position and (float(sell_price.amount) <= bought_at):
+            elif in_position and (((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)) <= Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)):
                 if hold_counter == 5:
                     hold_counter = 0
                     print("Overbought - selling despite loss due to hold timer")
                     sell_succeeded = sellBtc(TRADE_QUANTITY, sell_price.amount)
                     if sell_succeeded:
-                        running_total += float(TRADE_QUANTITY) * float(sell_price.amount)
+                        running_total += Decimal(TRADE_QUANTITY) * Decimal(sell_price.amount)
                         print("Running total of gain/loss: ${:,.2f}".format(round(running_total, 2)))
                         in_position = False
                 else:
@@ -121,7 +127,7 @@ while(True):
                 print("Buy!")
                 buy_succeeded = buyBtc(TRADE_QUANTITY, buy_price.amount)
                 if buy_succeeded:
-                    running_total -= float(TRADE_QUANTITY) * float(buy_price.amount)
+                    running_total -= Decimal(TRADE_QUANTITY) * Decimal(buy_price.amount)
                     print("Running total of gain/loss: ${:,.2f}".format(round(running_total, 2)))
                     in_position = True
     
