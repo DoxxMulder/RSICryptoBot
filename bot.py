@@ -1,6 +1,6 @@
 #Main program
 
-import numpy, talib, math
+import numpy, talib, math, websocket
 from coinbase.wallet.client import Client
 from time import sleep
 from data import api_key, api_secret #This is just a file with the API keys - intentionally left out of the repo for security reasons
@@ -11,9 +11,7 @@ from decimal import *
 client = Client(api_key, api_secret)
 #payment_method = client.get_payment_methods()[0]
 
-#Take user input
-#user_limit_order = float(input("Enter a price for your Bitcoin limit order (USD): "))
-#user_amount_spent = float(input("Enter how much you want to spend (USD): "))
+SOCKET = "wss://ws-feed.pro.coinbase.com"
 
 currency_code = 'USD'
 
@@ -37,7 +35,7 @@ hold_counter = 0
 def buyBtc(quantity, price):
     try:
         bought_at = Decimal(quantity) * Decimal(price)
-        #running_total -= float(quantity) * float(price)
+        #running_total -= Decimal(quantity) * Decimal(price)
         bTxt ="Bought {:.6f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}"
         print(bTxt.format(Decimal(quantity), Decimal(price), Decimal(quantity) * Decimal(price)))
     except Exception as e:
@@ -48,7 +46,7 @@ def buyBtc(quantity, price):
 
 def sellBtc(quantity, price):
     try:
-        #running_total += float(quantity) * float(price)
+        #running_total += Decimal(quantity) * Decimal(price)
         sTxt = "Sold {:.6f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}"
         print(sTxt.format(Decimal(quantity), Decimal(price), Decimal(quantity) * Decimal(price)))
     except Exception as e:
@@ -94,7 +92,7 @@ while(True):
         print("Current profit/loss:\t${:,.2f}\nCurrent rsi:\t{:.2f}".format(running_total,float(last_rsi)))
 
         if last_rsi > RSI_OVERBOUGHT:
-            if in_position and (((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)) > Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)):
+            if in_position and (((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)) < Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)):
                 print("Sell!")
                 print((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP))
                 print("is greater than price bought at:")
@@ -104,7 +102,7 @@ while(True):
                     running_total += Decimal(TRADE_QUANTITY) * Decimal(sell_price.amount)
                     print("Running total of gain/loss: ${:,.2f}".format(round(running_total, 2)))
                     in_position = False
-            elif in_position and (((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)) <= Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)):
+            elif in_position and (((Decimal(sell_price.amount) * TRADE_QUANTITY).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)) >= Decimal(bought_at).quantize(Decimal('.01'), rounding=ROUND_HALF_UP)):
                 if hold_counter == 5:
                     hold_counter = 0
                     print("Overbought - selling despite loss due to hold timer")
