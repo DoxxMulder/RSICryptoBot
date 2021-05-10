@@ -1,4 +1,4 @@
-#Main program
+#Main program w/ websockets
 
 import numpy, talib, math, websocket, json
 from coinbase.wallet.client import Client
