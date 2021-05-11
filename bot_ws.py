@@ -27,6 +27,9 @@ in_position = False
 bought_at = Decimal(0)        #Remember buy-in price
 running_total = Decimal(0)    #Total profit/loss
 hold_counter = 0
+bought_at = Decimal(0)
+sold_at = Decimal(0)
+profit = Decimal(0)
 
 price_list = []
 
@@ -44,10 +47,7 @@ def on_close(ws):
     print("Closed connection")
 
 def on_message(ws, message):
-    global price_list
-    global in_position
-    global cycle_time
-    global cycle
+    global price_list, in_position, cycle_time, cycle, bought_at, sold_at, profit, hold_counter
 
     json_message = json.loads(message)
     #print("Recieved message: {}".format(json_message))
@@ -55,7 +55,7 @@ def on_message(ws, message):
 
     current_price = json_message['price']
 
-    if cycle == 0: #TODO: Make this only check price after a given time interval
+    if cycle == 0: #TODO: Make this only check price after a given time interval, instead of just checking once per X messages
         cycle = cycle_time
         price_list.append(float(current_price))
         #print("Current price: {}".format(current_price))
@@ -64,13 +64,31 @@ def on_message(ws, message):
             np_prices = numpy.array(price_list)
             rsi = talib.RSI(np_prices, RSI_PERIOD)
             last_rsi = rsi[-1]
-            print("Current RSI: {}".format(last_rsi))
+            print("Current RSI: {:.2f}".format(last_rsi))
             #print("In position: {}".format(in_position))
 
             if last_rsi > RSI_OVERBOUGHT:
                 if in_position:
-                    print("Sell!")
-                    in_position = False
+                    print("Should we sell?")
+                    sold_at = Decimal(price_list[-1])
+                    try:
+                        if sold_at > bought_at:
+                            print("Selling {:.4f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}".format(TRADE_QUANTITY, sold_at, sold_at * TRADE_QUANTITY))
+                            profit += (sold_at - bought_at) * TRADE_QUANTITY
+                            print("Profit from this trade: ${:,.2f}\nTotal profit: ${:,.2f}".format((sold_at - bought_at) * TRADE_QUANTITY, profit))
+                            in_position = False
+                        elif hold_counter == 5:
+                            print("Hold limit reached!")
+                            hold_counter = 0
+                            print("Selling {:.4f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}".format(TRADE_QUANTITY, sold_at, sold_at * TRADE_QUANTITY))
+                            profit += (sold_at - bought_at) * TRADE_QUANTITY
+                            print("Profit: ${:,.2f}".format(profit))
+                            in_position = False
+                        else:
+                            print("Don't sell!")
+                            hold_counter += 1
+                    except Exception as e:
+                        print("Exception within overbought: {}".format(e))
                 else:
                     print("Overbought, but nothing to sell.")
 
@@ -79,11 +97,16 @@ def on_message(ws, message):
                     print("Oversold, but already in.")
                 else:
                     print("Buy!")
-                    in_position = True
+                    try:
+                        bought_at = Decimal(price_list[-1])
+                        print("Bought {:.4f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}".format(TRADE_QUANTITY, bought_at, bought_at * TRADE_QUANTITY))
+                        in_position = True
+                    except Exception as e:
+                        print("Exception within oversold: {}".format(e))
     else:
         print("Waiting... ({}) ".format(cycle), end = "\r")
         cycle -= 1
-        sleep(1)
+        #sleep(1)
 
 
 ws = websocket.WebSocketApp(SOCKET, on_open=on_open, on_close=on_close, on_message=on_message)
