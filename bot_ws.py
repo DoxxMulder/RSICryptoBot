@@ -20,7 +20,7 @@ RSI_OVERSOLD = 30
 TRADE_QUANTITY = Decimal(0.0005)
 
 #How often to update prices (in seconds)
-cycle_time = 5
+cycle_time = 20
 cycle = cycle_time
 
 in_position = False
@@ -82,7 +82,7 @@ def on_message(ws, message):
                             hold_counter = 0
                             print("Selling {:.4f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}".format(TRADE_QUANTITY, sold_at, sold_at * TRADE_QUANTITY))
                             profit += (sold_at - bought_at) * TRADE_QUANTITY
-                            print("Profit: ${:,.2f}".format(profit))
+                            print("Profit from this trade: ${:,.2f}\nTotal profit: ${:,.2f}".format((sold_at - bought_at) * TRADE_QUANTITY, profit))
                             in_position = False
                         else:
                             print("Don't sell!")
@@ -93,6 +93,7 @@ def on_message(ws, message):
                     print("Overbought, but nothing to sell.")
 
             if last_rsi < RSI_OVERSOLD:
+                hold_counter = 0
                 if in_position:
                     print("Oversold, but already in.")
                 else:
