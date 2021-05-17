@@ -13,6 +13,9 @@ from decimal import *
 
 SOCKET = "wss://ws-feed.pro.coinbase.com"
 
+#How long should we hold for before giving up on profit?
+HOLD_MAX = 10
+
 #TA Lib stuff
 RSI_PERIOD = 14
 RSI_OVERBOUGHT = 70
@@ -47,7 +50,7 @@ def on_close(ws):
     print("Closed connection")
 
 def on_message(ws, message):
-    global price_list, in_position, cycle_time, cycle, bought_at, sold_at, profit, hold_counter
+    global price_list, in_position, cycle_time, cycle, bought_at, sold_at, profit, hold_counter, HOLD_MAX
 
     json_message = json.loads(message)
     #print("Recieved message: {}".format(json_message))
@@ -72,20 +75,20 @@ def on_message(ws, message):
                     print("Should we sell?")
                     sold_at = Decimal(price_list[-1])
                     try:
-                        if sold_at > bought_at:
+                        if (sold_at * Decimal(0.97)) > bought_at: #Sell if we make a profit including fees
                             print("Selling {:.4f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}".format(TRADE_QUANTITY, sold_at, sold_at * TRADE_QUANTITY))
                             profit += (sold_at - bought_at) * TRADE_QUANTITY
                             print("Profit from this trade: ${:,.2f}\nTotal profit: ${:,.2f}".format((sold_at - bought_at) * TRADE_QUANTITY, profit))
                             in_position = False
-                        elif hold_counter == 5:
+                        elif hold_counter == HOLD_MAX:
                             print("Hold limit reached!")
                             hold_counter = 0
                             print("Selling {:.4f} BTC at ${:,.2f}/BTC for a total of ${:,.2f}".format(TRADE_QUANTITY, sold_at, sold_at * TRADE_QUANTITY))
                             profit += (sold_at - bought_at) * TRADE_QUANTITY
-                            print("Profit: ${:,.2f}".format(profit))
+                            print("Profit from this trade: ${:,.2f}\nTotal profit: ${:,.2f}".format((sold_at - bought_at) * TRADE_QUANTITY, profit))
                             in_position = False
                         else:
-                            print("Don't sell!")
+                            print("Don't sell! Hold count: {}".format(hold_counter))
                             hold_counter += 1
                     except Exception as e:
                         print("Exception within overbought: {}".format(e))
@@ -93,6 +96,7 @@ def on_message(ws, message):
                     print("Overbought, but nothing to sell.")
 
             if last_rsi < RSI_OVERSOLD:
+                hold_counter = 0
                 if in_position:
                     print("Oversold, but already in.")
                 else:
