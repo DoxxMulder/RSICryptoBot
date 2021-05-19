@@ -4,7 +4,6 @@ import numpy, talib, math, websocket, json, pprint
 from coinbase.wallet.client import Client
 from time import sleep
 from data import api_key, api_secret #This is just a file with the API keys - intentionally left out of the repo for security reasons
-from analytics import percentage_change
 from decimal import *
 
 #Setting up Coinbase client
